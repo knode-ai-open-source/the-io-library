@@ -170,7 +170,10 @@ char *io_find_file_in_parents(const char *path) {
   char fullpath[PATH_MAX];
 
   while (1) {
-    snprintf(fullpath, sizeof(fullpath)-2, "%s/%s", cwd, path);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", cwd, path);
+#pragma GCC diagnostic pop
     if (stat(fullpath, &sb) == 0)
       return aml_strdup(fullpath); // Found, return dynamically allocated string
 
