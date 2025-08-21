@@ -1,6 +1,7 @@
-// SPDX-FileCopyrightText:  2019-2025 Andy Curtis <contactandyc@gmail.com>
-// SPDX-FileCopyrightText: 2024-2025 Knode.ai
+// SPDX-FileCopyrightText: 2019–2025 Andy Curtis <contactandyc@gmail.com>
+// SPDX-FileCopyrightText: 2024–2025 Knode.ai — technical questions: contact Andy (above)
 // SPDX-License-Identifier: Apache-2.0
+
 #include "the-io-library/io.h"
 
 #include "a-memory-library/aml_alloc.h"
@@ -63,7 +64,7 @@ io_format_t io_csv_delimiter(int delim) {
 
 io_format_t io_fixed(int size) { return size; }
 
-io_format_t io_prefix() { return 0; }
+io_format_t io_prefix(void) { return 0; }
 
 bool io_make_directory(const char *path) {
   DIR *d = opendir(path);

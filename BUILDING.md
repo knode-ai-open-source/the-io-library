@@ -1,129 +1,189 @@
-### BUILDING
+# BUILDING
 
-#### 1 · Build the base image once
+This project: **The IO Library**
+Version: **0.0.1**
 
-```bash
-git clone https://github.com/knode-ai-open-source/dev-env.git
-cd dev-env
-docker build -t dev-env .
-```
-
----
-
-#### 2 · Build your project image
+## Local build
 
 ```bash
-docker build -t the-io-library:dev .
-```
+# one-shot build + install
+./build.sh install
+````
 
----
-
-#### 3 · Project layout
-
-```
-Dockerfile        # extends dev-env
-build_install.sh  # builds & installs project to /usr/local
-src/ …
-```
-
-Recommended `build_install.sh`:
+Or run the steps manually:
 
 ```bash
-#!/usr/bin/env bash
-set -euxo pipefail
-rm -rf build && mkdir build && cd build
+mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j"$(nproc)"
-sudo make install
+cmake --build . -j"$(nproc || sysctl -n hw.ncpu || echo 4)"
+sudo cmake --install .
 ```
 
----
 
-#### 4 · Minimal **Dockerfile** for public dependencies
+## Install dependencies (from `cmake.libraries`)
+
+
+### System packages (required)
+
+```bash
+sudo apt-get update && sudo apt-get install -y zlib1g-dev
+```
+
+
+
+### Development tooling (optional)
+
+```bash
+sudo apt-get update && sudo apt-get install -y valgrind gdb python3 python3-venv python3-pip perl autoconf automake libtool
+```
+
+
+
+### a-memory-library
+
+Clone & build:
+
+```bash
+git clone --depth 1 "https://github.com/knode-ai-open-source/a-memory-library.git" "a-memory-library"
+cd a-memory-library
+./build.sh install
+cd ..
+rm -rf a-memory-library
+```
+
+
+### the-lz4-library
+
+Clone & build:
+
+```bash
+git clone --depth 1 "https://github.com/knode-ai-open-source/the-lz4-library.git" "the-lz4-library"
+cd the-lz4-library
+./build.sh install
+cd ..
+rm -rf the-lz4-library
+```
+
+
+### the-macro-library
+
+Clone & build:
+
+```bash
+git clone --depth 1 "https://github.com/knode-ai-open-source/the-macro-library.git" "the-macro-library"
+cd the-macro-library
+./build.sh install
+cd ..
+rm -rf the-macro-library
+```
+
+
+### ZLIB
+
+Install via package manager:
+
+```bash
+sudo apt-get update && sudo apt-get install -y zlib1g-dev
+```
+
+
+## Docker (optional)
 
 ```dockerfile
-# syntax=docker/dockerfile:1.7
-FROM dev-env
+# syntax=docker/dockerfile:1
+ARG UBUNTU_TAG=22.04
+FROM ubuntu:${UBUNTU_TAG}
+
+# --- Configurable (can be overridden with --build-arg) ---
+ARG CMAKE_VERSION=3.26.4
+ARG CMAKE_BASE_URL=https://github.com/Kitware/CMake/releases/download
+ARG GITHUB_TOKEN
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- Base system setup --------------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    wget \
+    tar \
+    unzip \
+    zip \
+    pkg-config \
+    sudo \
+    ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Development tooling (optional)
+RUN apt-get update && apt-get install -y \
+    valgrind \
+    gdb \
+    python3 \
+    python3-venv \
+    python3-pip \
+    perl \
+    autoconf \
+    automake \
+    libtool \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- Install CMake from official binaries (arch-aware) ------------------------
+RUN set -eux; \
+    ARCH="$(uname -m)"; \
+    case "$ARCH" in \
+      x86_64) CMAKE_ARCH=linux-x86_64 ;; \
+      aarch64) CMAKE_ARCH=linux-aarch64 ;; \
+      *) echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    apt-get update && apt-get install -y wget tar && rm -rf /var/lib/apt/lists/*; \
+    wget -q "${CMAKE_BASE_URL}/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-${CMAKE_ARCH}.tar.gz" -O /tmp/cmake.tgz; \
+    tar --strip-components=1 -xzf /tmp/cmake.tgz -C /usr/local; \
+    rm -f /tmp/cmake.tgz
+
+# --- Create a non-root 'dev' user with passwordless sudo ----------------------
+RUN useradd --create-home --shell /bin/bash dev && \
+    echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /workspace && chown dev:dev /workspace
 
 USER dev
 WORKDIR /workspace
 
-RUN set -eux; \
-    for repo in a-cmake-library the-macro-library a-memory-library; do \
-        git clone --depth 1 "https://github.com/knode-ai-open-source/${repo}.git" "$repo"; \
-        (cd "$repo" && ./build_install.sh); \
-        rm -rf "$repo"; \
-    done
+# --- Optional Python venv for tools ------------------------------------------
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip
+ENV PATH="/opt/venv/bin:${PATH}"
 
-COPY --chown=dev:dev . /workspace/project
-RUN cd /workspace/project && ./build_install.sh
+# --- Build & install a-memory-library ---
+RUN set -eux; \
+  git clone --depth 1 "https://github.com/knode-ai-open-source/a-memory-library.git" "a-memory-library" && \
+  cd a-memory-library && \
+  ./build.sh install && \
+  cd .. && \
+  rm -rf a-memory-library
+
+# --- Build & install the-lz4-library ---
+RUN set -eux; \
+  git clone --depth 1 "https://github.com/knode-ai-open-source/the-lz4-library.git" "the-lz4-library" && \
+  cd the-lz4-library && \
+  ./build.sh install && \
+  cd .. && \
+  rm -rf the-lz4-library
+
+# --- Build & install the-macro-library ---
+RUN set -eux; \
+  git clone --depth 1 "https://github.com/knode-ai-open-source/the-macro-library.git" "the-macro-library" && \
+  cd the-macro-library && \
+  ./build.sh install && \
+  cd .. && \
+  rm -rf the-macro-library
+
+
+# --- Build & install this project --------------------------------------------
+COPY --chown=dev:dev . /workspace/the-io-library
+RUN mkdir -p /workspace/build/the-io-library && \
+    cd /workspace/build/the-io-library && \
+    cmake /workspace/the-io-library && \
+    make -j"$(nproc)" && sudo make install
 
 CMD ["/bin/bash"]
 ```
-
----
-
-#### 5 · Smoke‑test the image (optional)
-
-```bash
-docker run --rm -it the-io-library:dev bash -lc \
-  'cd /workspace/project/build && ctest --output-on-failure'
-```
-
----
-
-## Advanced usage — private repositories
-
-### a) Install GitHub CLI (`gh`)
-
-*macOS (Homebrew)*
-
-```bash
-brew install gh
-gh auth login          # HTTPS, follow prompts
-```
-
-*Debian/Ubuntu*
-
-```bash
-sudo apt update && sudo apt install -y gh
-gh auth login
-```
-
-Verify:
-
-```bash
-gh auth token | wc -c   # >0 means a token is present
-```
-
-### b) Extend the Dockerfile
-
-Uncomment the block below and add your private repo names:
-
-```dockerfile
-# --- OPTIONAL: private deps (requires BuildKit secret) ---
-# RUN --mount=type=secret,id=gh,uid=1000,gid=1000,mode=0400,required \
-#     set -eux; GHTOKEN="$(cat /run/secrets/gh)"; \
-#     for repo in some-private-repo another-private-repo; do \
-#         git clone "https://${GHTOKEN}@github.com/knode-ai/${repo}.git" "$repo"; \
-#         (cd "$repo" && ./build_install.sh); \
-#         rm -rf "$repo"; \
-#     done
-```
-
-### c) Build with a token
-
-```bash
-GITHUB_TOKEN=$(gh auth token) docker build \
-  --secret id=gh,env=GITHUB_TOKEN \
-  -t the-io-library:dev .
-```
-
-### d) Common token‑related issues
-
-| Message / Symptom                         | Fix                                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------------------ |
-| `cat: /run/secrets/gh: Permission denied` | Add `uid=1000,gid=1000,mode=0400` to secret mount.                             |
-| `Missing GitHub token secret`             | Pass `--secret id=gh,env=GITHUB_TOKEN` (or `src=`).                            |
-| `fatal: could not read Username…`         | Token not passed / empty; verify token & secret mount.                         |
-| `403` from GitHub                         | Ensure token has **Contents → Read** (fine‑grained) or `repo` scope (classic). |

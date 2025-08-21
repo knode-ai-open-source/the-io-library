@@ -4,3 +4,6 @@ build
 *~
 *.dSYM
 build-unix_makefiles
+build-cov
+build-coverage
+.c-repo.yaml

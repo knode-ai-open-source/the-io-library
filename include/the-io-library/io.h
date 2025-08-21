@@ -1,6 +1,7 @@
-// SPDX-FileCopyrightText:  2019-2025 Andy Curtis <contactandyc@gmail.com>
-// SPDX-FileCopyrightText: 2024-2025 Knode.ai
+// SPDX-FileCopyrightText: 2019–2025 Andy Curtis <contactandyc@gmail.com>
+// SPDX-FileCopyrightText: 2024–2025 Knode.ai — technical questions: contact Andy (above)
 // SPDX-License-Identifier: Apache-2.0
+
 #ifndef _io_H
 #define _io_H
 
@@ -25,7 +26,7 @@ io_format_t io_csv_delimiter(int delim);
 /* fixed length records of a given size */
 io_format_t io_fixed(int size);
 /* variable length records with a 4 byte prefix length */
-io_format_t io_prefix();
+io_format_t io_prefix(void);
 
 /* common record structure for the io_format's above */
 typedef struct {
@@ -219,7 +220,7 @@ bool io_extension(const char *filename, const char *extension);
 
 /* compare the first 32 or 64 bits of a record */
 static inline int io_compare_uint32_t(const io_record_t *p1,
-                                         const io_record_t *p2, void *tag) {
+                                         const io_record_t *p2, void *tag __attribute__((unused))) {
   uint32_t *a = (uint32_t *)p1->record;
   uint32_t *b = (uint32_t *)p2->record;
   if (*a != *b)
@@ -228,7 +229,7 @@ static inline int io_compare_uint32_t(const io_record_t *p1,
 }
 
 static inline int io_compare_uint64_t(const io_record_t *p1,
-                                         const io_record_t *p2, void *tag) {
+                                         const io_record_t *p2, void *tag __attribute__((unused))) {
   uint64_t *a = (uint64_t *)p1->record;
   uint64_t *b = (uint64_t *)p2->record;
   if (*a != *b)
@@ -238,28 +239,28 @@ static inline int io_compare_uint64_t(const io_record_t *p1,
 
 /* split by the first 32 or 64 bits of a record */
 static inline size_t io_split_by_uint32_t(const io_record_t *r,
-                                             size_t num_part, void *tag) {
+                                             size_t num_part, void *tag __attribute__((unused))) {
   uint32_t *a = (uint32_t *)r->record;
   uint32_t np = num_part;
   return (*a) % np;
 }
 
 static inline size_t io_split_by_uint64_t(const io_record_t *r,
-                                             size_t num_part, void *tag) {
+                                             size_t num_part, void *tag __attribute__((unused))) {
   uint64_t *a = (uint64_t *)r->record;
   return (*a) % num_part;
 }
 
 /* split by the second 32 or 64 bits of a record */
 static inline size_t io_split_by_uint32_t_2(const io_record_t *r,
-                                               size_t num_part, void *tag) {
+                                               size_t num_part, void *tag __attribute__((unused))) {
   uint32_t *a = (uint32_t *)r->record;
   uint32_t np = num_part;
   return (a[1]) % np;
 }
 
 static inline size_t io_split_by_uint64_t_2(const io_record_t *r,
-                                               size_t num_part, void *tag) {
+                                               size_t num_part, void *tag __attribute__((unused))) {
   uint64_t *a = (uint64_t *)r->record;
   return (a[1]) % num_part;
 }
