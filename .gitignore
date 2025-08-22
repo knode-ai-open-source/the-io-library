@@ -6,4 +6,3 @@ build
 build-unix_makefiles
 build-cov
 build-coverage
-.c-repo.yaml
